@@ -1,113 +1,121 @@
-# mime-types
+# minimist <sup>[![Version Badge][npm-version-svg]][package-url]</sup>
 
-[![NPM Version][npm-version-image]][npm-url]
-[![NPM Downloads][npm-downloads-image]][npm-url]
-[![Node.js Version][node-version-image]][node-version-url]
-[![Build Status][ci-image]][ci-url]
-[![Test Coverage][coveralls-image]][coveralls-url]
+[![github actions][actions-image]][actions-url]
+[![coverage][codecov-image]][codecov-url]
+[![License][license-image]][license-url]
+[![Downloads][downloads-image]][downloads-url]
 
-The ultimate javascript content-type utility.
+[![npm badge][npm-badge-png]][package-url]
 
-Similar to [the `mime@1.x` module](https://www.npmjs.com/package/mime), except:
+parse argument options
 
-- __No fallbacks.__ Instead of naively returning the first available type,
-  `mime-types` simply returns `false`, so do
-  `var type = mime.lookup('unrecognized') || 'application/octet-stream'`.
-- No `new Mime()` business, so you could do `var lookup = require('mime-types').lookup`.
-- No `.define()` functionality
-- Bug fixes for `.lookup(path)`
+This module is the guts of optimist's argument parser without all the
+fanciful decoration.
 
-Otherwise, the API is compatible with `mime` 1.x.
+# example
 
-## Install
-
-This is a [Node.js](https://nodejs.org/en/) module available through the
-[npm registry](https://www.npmjs.com/). Installation is done using the
-[`npm install` command](https://docs.npmjs.com/getting-started/installing-npm-packages-locally):
-
-```sh
-$ npm install mime-types
+``` js
+var argv = require('minimist')(process.argv.slice(2));
+console.log(argv);
 ```
 
-## Adding Types
-
-All mime types are based on [mime-db](https://www.npmjs.com/package/mime-db),
-so open a PR there if you'd like to add mime types.
-
-## API
-
-```js
-var mime = require('mime-types')
+```
+$ node example/parse.js -a beep -b boop
+{ _: [], a: 'beep', b: 'boop' }
 ```
 
-All functions return `false` if input is invalid or not found.
-
-### mime.lookup(path)
-
-Lookup the content-type associated with a file.
-
-```js
-mime.lookup('json') // 'application/json'
-mime.lookup('.md') // 'text/markdown'
-mime.lookup('file.html') // 'text/html'
-mime.lookup('folder/file.js') // 'application/javascript'
-mime.lookup('folder/.htaccess') // false
-
-mime.lookup('cats') // false
+```
+$ node example/parse.js -x 3 -y 4 -n5 -abc --beep=boop foo bar baz
+{
+	_: ['foo', 'bar', 'baz'],
+	x: 3,
+	y: 4,
+	n: 5,
+	a: true,
+	b: true,
+	c: true,
+	beep: 'boop'
+}
 ```
 
-### mime.contentType(type)
+# security
 
-Create a full content-type header given a content-type or extension.
-When given an extension, `mime.lookup` is used to get the matching
-content-type, otherwise the given content-type is used. Then if the
-content-type does not already have a `charset` parameter, `mime.charset`
-is used to get the default charset and add to the returned content-type.
+Previous versions had a prototype pollution bug that could cause privilege
+escalation in some circumstances when handling untrusted user input.
 
-```js
-mime.contentType('markdown') // 'text/x-markdown; charset=utf-8'
-mime.contentType('file.json') // 'application/json; charset=utf-8'
-mime.contentType('text/html') // 'text/html; charset=utf-8'
-mime.contentType('text/html; charset=iso-8859-1') // 'text/html; charset=iso-8859-1'
+Please use version 1.2.6 or later:
 
-// from a full path
-mime.contentType(path.extname('/path/to/file.json')) // 'application/json; charset=utf-8'
+* https://security.snyk.io/vuln/SNYK-JS-MINIMIST-2429795 (version <=1.2.5)
+* https://snyk.io/vuln/SNYK-JS-MINIMIST-559764 (version <=1.2.3)
+
+# methods
+
+``` js
+var parseArgs = require('minimist')
 ```
 
-### mime.extension(type)
+## var argv = parseArgs(args, opts={})
 
-Get the default extension for a content-type.
+Return an argument object `argv` populated with the array arguments from `args`.
 
-```js
-mime.extension('application/octet-stream') // 'bin'
+`argv._` contains all the arguments that didn't have an option associated with
+them.
+
+Numeric-looking arguments will be returned as numbers unless `opts.string` or
+`opts.boolean` is set for that argument name.
+
+Any arguments after `'--'` will not be parsed and will end up in `argv._`.
+
+options can be:
+
+* `opts.string` - a string or array of strings argument names to always treat as
+strings
+* `opts.boolean` - a boolean, string or array of strings to always treat as
+booleans. if `true` will treat all double hyphenated arguments without equal signs
+as boolean (e.g. affects `--foo`, not `-f` or `--foo=bar`)
+* `opts.alias` - an object mapping string names to strings or arrays of string
+argument names to use as aliases
+* `opts.default` - an object mapping string argument names to default values
+* `opts.stopEarly` - when true, populate `argv._` with everything after the
+first non-option
+* `opts['--']` - when true, populate `argv._` with everything before the `--`
+and `argv['--']` with everything after the `--`. Here's an example:
+
+  ```
+  > require('./')('one two three -- four five --six'.split(' '), { '--': true })
+  {
+    _: ['one', 'two', 'three'],
+    '--': ['four', 'five', '--six']
+  }
+  ```
+
+  Note that with `opts['--']` set, parsing for arguments still stops after the
+  `--`.
+
+* `opts.unknown` - a function which is invoked with a command line parameter not
+defined in the `opts` configuration object. If the function returns `false`, the
+unknown option is not added to `argv`.
+
+# install
+
+With [npm](https://npmjs.org) do:
+
+```
+npm install minimist
 ```
 
-### mime.charset(type)
+# license
 
-Lookup the implied default charset of a content-type.
+MIT
 
-```js
-mime.charset('text/markdown') // 'UTF-8'
-```
-
-### var type = mime.types[extension]
-
-A map of content-types by extension.
-
-### [extensions...] = mime.extensions[type]
-
-A map of extensions by content-type.
-
-## License
-
-[MIT](LICENSE)
-
-[ci-image]: https://badgen.net/github/checks/jshttp/mime-types/master?label=ci
-[ci-url]: https://github.com/jshttp/mime-types/actions/workflows/ci.yml
-[coveralls-image]: https://badgen.net/coveralls/c/github/jshttp/mime-types/master
-[coveralls-url]: https://coveralls.io/r/jshttp/mime-types?branch=master
-[node-version-image]: https://badgen.net/npm/node/mime-types
-[node-version-url]: https://nodejs.org/en/download
-[npm-downloads-image]: https://badgen.net/npm/dm/mime-types
-[npm-url]: https://npmjs.org/package/mime-types
-[npm-version-image]: https://badgen.net/npm/v/mime-types
+[package-url]: https://npmjs.org/package/minimist
+[npm-version-svg]: https://versionbadg.es/minimistjs/minimist.svg
+[npm-badge-png]: https://nodei.co/npm/minimist.png?downloads=true&stars=true
+[license-image]: https://img.shields.io/npm/l/minimist.svg
+[license-url]: LICENSE
+[downloads-image]: https://img.shields.io/npm/dm/minimist.svg
+[downloads-url]: https://npm-stat.com/charts.html?package=minimist
+[codecov-image]: https://codecov.io/gh/minimistjs/minimist/branch/main/graphs/badge.svg
+[codecov-url]: https://app.codecov.io/gh/minimistjs/minimist/
+[actions-image]: https://img.shields.io/endpoint?url=https://github-actions-badge-u3jn4tfpocch.runkit.sh/minimistjs/minimist
+[actions-url]: https://github.com/minimistjs/minimist/actions
